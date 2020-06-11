@@ -1,0 +1,22 @@
+// Apply the scala plugin to add support for Scala
+apply plugin: 'scala'
+apply plugin: 'idea'
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    // Use 'jcenter' for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+}
+
+// In this section you declare the dependencies for your production and test code
+dependencies {
+    // We use Scala 2.11 in our library project
+    compile 'org.scala-lang:scala-library:2.13.0'
+    compile "org.scala-lang:scala-reflect:2.13.0"
+
+    // We use Scalatest for testing our library
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.scalatest:scalatest_2.13:2.2.6'
+    testRuntime 'org.scala-lang.modules:scala-xml_2.13:1.0.5'
+}
