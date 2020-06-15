@@ -11,9 +11,12 @@ repositories {
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
-    // We use Scala 2.11 in our library project
     compile 'org.scala-lang:scala-library:2.13.0'
     compile "org.scala-lang:scala-reflect:2.13.0"
+
+    compile 'com.github.ocraft:ocraft-s2client-bot:0.3.17'
+
+    compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.13', version: '3.9.2'
 
     // We use Scalatest for testing our library
     testCompile 'junit:junit:4.12'
