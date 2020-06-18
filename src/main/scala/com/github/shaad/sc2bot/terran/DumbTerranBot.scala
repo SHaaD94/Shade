@@ -29,6 +29,7 @@ class DumbTerranBot extends BotBase {
     buildBarracks()
     buildRefinery()
     assignGatheringGas()
+    expand()
 
     trainSCVs()
     trainMarines()
@@ -40,8 +41,35 @@ class DumbTerranBot extends BotBase {
     lowerDepos()
   }
 
-  def assignGatheringGas() = {
-//    ???
+  def expand(): Unit = {
+    if (obs.getMinerals >= mineralCost(Units.TERRAN_COMMAND_CENTER)) {
+      expansionLocations.sortBy(_.distance(obs.getStartLocation))
+        .find(canBuild(Units.TERRAN_COMMAND_CENTER, _)) match {
+        case Some(expPlacement) =>
+          actions().unitCommand(
+            myFreeSCVs().toSeq.minBy(_.distance(expPlacement)),
+            Abilities.BUILD_COMMAND_CENTER,
+            expPlacement,
+            false)
+        case None =>
+      }
+    }
+  }
+
+  def assignGatheringGas(): Unit = {
+    myUnits(_.getType == Units.TERRAN_REFINERY).filter(_.getBuildProgress == 1.0).foreach { r =>
+      val scvs = mySCVs()
+
+      val scvsOnThisRefinery = r.getAssignedHarvesters.orElse(0)
+      // we need to assign more workers on this refinery
+      if (scvsOnThisRefinery < 3) {
+        scvs.filter(s => s.getOrders.size() == 1 && s.getOrders.asScala.exists(o => o.getAbility == Abilities.HARVEST_GATHER &&
+          o.getTargetedUnitTag.filter(t => obs.getUnit(t).getType.toString.contains("MINERAL")).isPresent))
+          .toSeq.sortBy(_.getPosition.distance(r)).take(3 - scvsOnThisRefinery).foreach { s =>
+          actions().unitCommand(s, Abilities.HARVEST_GATHER, r, false)
+        }
+      }
+    }
   }
 
   def buildRefinery(): Unit = {
@@ -135,9 +163,7 @@ class DumbTerranBot extends BotBase {
   }
 
   private def buildBarracks(): Unit = {
-    val allCCs = myAliveUnits { u =>
-      u.unit().getType == Units.TERRAN_COMMAND_CENTER
-    }
+    val allCCs = myCommandCenters()
 
     val numberOfBarracks = myAliveUnits { u =>
       u.unit().getType == Units.TERRAN_BARRACKS

@@ -50,6 +50,8 @@ object Extensions {
   implicit def unitInPoolToUnit(unitInPool: UnitInPool): SC2Unit = unitInPool.unit()
 
   implicit def unitInPoolToPosition(unitInPool: UnitInPool): Point = unitInPool.unit().getPosition
+
+  implicit def pointToPoint2d(point:Point): Point2d = point.toPoint2d
 }
 
 object TerranExtensions {
