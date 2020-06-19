@@ -15,7 +15,7 @@ object TerranDumbBotStarter extends App {
     .setPortStart(Constants.port)
     .setWindowSize(2500,1500)
     .setParticipants(S2Coordinator.createParticipant(Race.TERRAN, bot),
-      S2Coordinator.createComputer(Race.ZERG, Difficulty.MEDIUM))
+      S2Coordinator.createComputer(Race.ZERG, Difficulty.HARD))
     .launchStarcraft
     .startGame(BattlenetMap.of("Eternal Empire LE"))
 
