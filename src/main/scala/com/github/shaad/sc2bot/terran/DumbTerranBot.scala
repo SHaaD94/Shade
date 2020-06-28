@@ -2,12 +2,10 @@ package com.github.shaad.sc2bot.terran
 
 import com.github.ocraft.s2client.bot.gateway.UnitInPool
 import com.github.ocraft.s2client.protocol.data.{Abilities, Units}
-import com.github.ocraft.s2client.protocol.debug.Color
-import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
-import com.github.ocraft.s2client.protocol.unit.{Alliance, Unit => SC2Unit}
+import com.github.ocraft.s2client.protocol.unit.{Unit => SC2Unit}
 import com.github.shaad.sc2bot.BotBase
-import com.github.shaad.sc2bot.util.Extensions._
-import com.github.shaad.sc2bot.util.TerranExtensions._
+import com.github.shaad.sc2bot.common.Extensions._
+import com.github.shaad.sc2bot.terran.TerranExtensions._
 
 import scala.jdk.CollectionConverters._
 

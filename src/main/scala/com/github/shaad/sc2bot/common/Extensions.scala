@@ -1,4 +1,4 @@
-package com.github.shaad.sc2bot.util
+package com.github.shaad.sc2bot.common
 
 import com.github.ocraft.s2client.bot.gateway.{ObservationInterface, QueryInterface, UnitInPool}
 import com.github.ocraft.s2client.protocol.data.{Abilities, Ability, UnitType, UnitTypeData, Units}
@@ -52,21 +52,4 @@ object Extensions {
   implicit def unitInPoolToPosition(unitInPool: UnitInPool): Point = unitInPool.unit().getPosition
 
   implicit def pointToPoint2d(point:Point): Point2d = point.toPoint2d
-}
-
-object TerranExtensions {
-
-  import Extensions._
-
-  implicit def mySCVs(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterable[UnitInPool] = {
-    myAliveUnits(_.unit().getType == Units.TERRAN_SCV)
-  }
-
-  implicit def myFreeSCVs(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterable[UnitInPool] = {
-    myAliveUnits(u => u.unit().getType == Units.TERRAN_SCV && !u.getOrders.asScala.exists(_.getAbility != Abilities.HARVEST_GATHER))
-  }
-
-  implicit def myCommandCenters(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterable[UnitInPool] = {
-    myAliveUnits(u => u.unit().getType == Units.TERRAN_COMMAND_CENTER || u.unit().getType == Units.TERRAN_ORBITAL_COMMAND || u.unit().getType == Units.TERRAN_PLANETARY_FORTRESS)
-  }
 }

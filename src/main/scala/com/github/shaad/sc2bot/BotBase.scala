@@ -5,7 +5,7 @@ import com.github.ocraft.s2client.bot.gateway.{ObservationInterface, QueryInterf
 import com.github.ocraft.s2client.protocol.debug.Color
 import com.github.ocraft.s2client.protocol.observation.raw.MapState
 import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
-import com.github.shaad.sc2bot.util.LazyLogging
+import com.github.shaad.sc2bot.common.LazyLogging
 
 import scala.jdk.CollectionConverters._
 
