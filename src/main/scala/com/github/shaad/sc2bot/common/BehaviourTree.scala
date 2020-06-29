@@ -2,30 +2,48 @@ package com.github.shaad.sc2bot.common
 
 trait Node {
 
-  def evaluate(): Boolean
-
-  def ?(): Boolean = evaluate()
+  def eval(): Boolean
 }
 
-class Selector(val chooses: (() => Boolean, Node)*) extends AnyVal with Node {
-  override def evaluate(): Boolean = chooses.to(LazyList).find(_._1()) match {
-    case Some((_, node)) => node.evaluate()
+case class Selector(chooses: (() => Boolean, Node)*) extends Node {
+  override def eval(): Boolean = chooses.to(LazyList).find(_._1()) match {
+    case Some((_, node)) => node.eval()
     case None => false
   }
 }
 
-class Sequence(val nodes: List[Node]) extends AnyVal with Node {
-  override def evaluate(): Boolean = nodes.to(LazyList).exists(!_.evaluate())
+case class Sequence(nodes: Node*) extends Node {
+  override def eval(): Boolean = nodes.to(LazyList).forall(_.eval())
 }
 
-class Parallel(val nodes: List[Node]) extends AnyVal with Node {
-  override def evaluate(): Boolean = nodes.map(_.evaluate()).exists(!_)
+case class Parallel(nodes: Node*) extends Node {
+  override def eval(): Boolean = nodes.map(_.eval()).exists(!_)
 }
 
-class Condition(val func: () => Boolean) extends AnyVal with Node {
-  override def evaluate(): Boolean = func()
+case class Condition(func: () => Boolean) extends Node {
+  override def eval(): Boolean = func()
 }
 
-class Action(val func: () => Boolean) extends AnyVal with Node {
-  override def evaluate(): Boolean = func()
+case class Action(func: () => Unit) extends Node {
+  override def eval(): Boolean = {
+    func()
+    true
+  }
+}
+
+case class StateFullSequence(nodes: Node*) {
+  private var nodesLeft = nodes
+
+  def evalNext(): Boolean = {
+    require(!finished(), "Trying to evaluate empty sequence!")
+
+    val headEvaluationResult = nodesLeft.head.eval()
+    if (headEvaluationResult) {
+      nodesLeft = nodesLeft.tail
+    }
+
+    headEvaluationResult
+  }
+
+  def finished(): Boolean = nodesLeft.isEmpty
 }

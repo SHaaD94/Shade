@@ -77,7 +77,7 @@ class DumbTerranBot extends BotBase {
 
     if (refineries.size == 1) return
 
-    actions().unitCommand(myFreeSCVs().head, Abilities.BUILD_REFINERY,
+    actions().unitCommand(myFreeSCVs().next(), Abilities.BUILD_REFINERY,
       vespeneGeysers().toSeq.minBy(_.distance(observation().getStartLocation)), false)
   }
 
@@ -135,7 +135,7 @@ class DumbTerranBot extends BotBase {
   }
 
   private def buildSupply() = {
-    val cc: SC2Unit = myCommandCenters().head
+    val cc: SC2Unit = myCommandCenters().next()
 
     val gameLoop = observation.getGameLoop
 
@@ -143,7 +143,7 @@ class DumbTerranBot extends BotBase {
       .flatMap(_.getOrders.asScala.find(_.getAbility == Abilities.BUILD_SUPPLY_DEPOT)).isEmpty
 
     if (gameLoop % 50 == 0 && notAssignedBuildingOfDepo) {
-      val scv: SC2Unit = myFreeSCVs().head
+      val scv: SC2Unit = myFreeSCVs().next()
       if (observation().getFoodUsed + 8 >= observation().getFoodCap && observation().getMinerals >= mineralCost(Units.TERRAN_SUPPLY_DEPOT)) {
         var (x, y) = (-cc.getRadius, cc.getRadius)
         var t = 0
@@ -175,7 +175,7 @@ class DumbTerranBot extends BotBase {
     while (!canBuild(Units.TERRAN_BARRACKS, startingPoint)) {
       startingPoint = startingPoint.add(3, 0)
     }
-    val scv = myFreeSCVs().head
+    val scv = myFreeSCVs().next()
 
     actions().unitCommand(scv, Abilities.BUILD_BARRACKS, startingPoint, false)
   }
