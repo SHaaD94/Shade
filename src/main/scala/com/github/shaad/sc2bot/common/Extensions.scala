@@ -8,6 +8,9 @@ import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC
 import scala.jdk.CollectionConverters._
 
 object Extensions {
+  def buildingSize(buildAbility: Ability)(implicit observation: ObservationInterface): Double = {
+    observation.getAbilityData(false).get(buildAbility).getFootprintRadius.orElse(0F).toDouble
+  }
 
   def canAfford(unitType: UnitType)(implicit observation: ObservationInterface): Boolean = {
     mineralCost(unitType) <= observation.getMinerals && vespeneCost(unitType) <= observation.getVespene
@@ -37,10 +40,6 @@ object Extensions {
     units(u => u.getType.toString.contains("MINERAL") && filter(u))
   }
 
-  def units(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
-    observation.getUnits({ (u: UnitInPool) => filter(u) }).iterator().asScala
-  }
-
   def vespeneGeysers(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
     units(u => (
       u.getType.toString.contains("NEUTRAL") && u.getType.toString.contains("VESPEN")) && filter(u))
@@ -57,7 +56,13 @@ object Extensions {
     }).iterator().asScala
   }
 
-  @deprecated
+  def ramps(implicit observation: ObservationInterface) = units(_.getType.toString.contains("RAMP"))
+
+  def units(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
+    observation.getUnits({ (u: UnitInPool) => filter(u) }).iterator().asScala
+  }
+
+  @deprecated("used in terran bot, Shade should not use it")
   def myAliveUnits(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
     observation.getUnits(Alliance.SELF, { (u: UnitInPool) => u.isAlive && filter(u) }).iterator().asScala
   }

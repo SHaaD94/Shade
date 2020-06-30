@@ -4,7 +4,7 @@ import java.util
 
 import com.github.ocraft.s2client.bot.ClientError
 import com.github.ocraft.s2client.bot.gateway.UnitInPool
-import com.github.ocraft.s2client.protocol.data.{Units, Upgrade}
+import com.github.ocraft.s2client.protocol.data.{Abilities, Units, Upgrade}
 import com.github.ocraft.s2client.protocol.observation.Alert
 import com.github.shaad.sc2bot.BotBase
 import com.github.shaad.sc2bot.common.Extensions._
