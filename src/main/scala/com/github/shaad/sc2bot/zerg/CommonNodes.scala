@@ -1,14 +1,18 @@
 package com.github.shaad.sc2bot.zerg
 
+import java.awt.geom.{Line2D, Rectangle2D}
 import java.awt.{Polygon, Rectangle}
+
 import scala.jdk.CollectionConverters._
-import com.github.ocraft.s2client.bot.gateway.{ActionInterface, ControlInterface, ObservationInterface, QueryInterface}
+import com.github.ocraft.s2client.bot.gateway.{ActionInterface, ControlInterface, DebugInterface, ObservationInterface, QueryInterface}
 import com.github.ocraft.s2client.protocol.data.{Abilities, Units}
+import com.github.ocraft.s2client.protocol.debug.Color
+import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
 import com.github.shaad.sc2bot.common.{Action, Condition, Sequence, StateFullSequence}
 import com.github.shaad.sc2bot.common.Extensions._
 import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
-class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface) {
+class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
 
   val buildDrone = Sequence(
     Condition { () => enoughFood(Units.ZERG_DRONE) && larvas.nonEmpty && canAfford(Units.ZERG_DRONE) },
@@ -41,9 +45,7 @@ class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, act
           .minBy(g => mainBuildings.map(m => m.getPosition.distance(g.getPosition)).min)
           .unit()
 
-        val freeDroneClosestToGeyser = freeDrones.minBy(query.pathingDistance(_, geyser.getPosition.toPoint2d))
-
-        action.unitCommand(freeDroneClosestToGeyser, Abilities.BUILD_EXTRACTOR, geyser, false)
+        action.unitCommand(closestFreeDrone(geyser.getPosition), Abilities.BUILD_EXTRACTOR, geyser, false)
       }
     )
   )
@@ -52,20 +54,31 @@ class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, act
     Sequence(
       Condition { () => canAfford(Units.ZERG_SPAWNING_POOL) },
       Action { () =>
-
-        val x = obs.getStartLocation.getX - 10.0
-        val y = obs.getStartLocation.getY - 10.0
+        val startLocation = obs.getStartLocation
 
         val poolRadius = buildingSize(Abilities.BUILD_SPAWNING_POOL)
 
-        (0 until 20).foreach { x =>
-          (0 until 20).foreach { y =>
+        // will be divided by 2
+        val distanceFromHatchery = 10
 
+        val lines = (minerals(startLocation.distance(_) < 10.0) ++ vespeneGeysers(startLocation.distance(_) < 10.0))
+          .map(_.getPosition)
+          .map(p => new Line2D.Float(startLocation.getX, startLocation.getY, p.getX, p.getY))
+          .toSeq
+
+        val buildingPoint = (-distanceFromHatchery to distanceFromHatchery).map { x =>
+          (-distanceFromHatchery to distanceFromHatchery).map { y =>
+            startLocation.toPoint2d.add(Point2d.of(x / 2.0F, y / 2.0F))
           }
-        }
-        //        Polygon()
-        //        val positionForPool = rand
+            .filter(p => p.distance(startLocation) < distanceFromHatchery / 2.0)
+            .filter(p => canBuild(Units.ZERG_SPAWNING_POOL, p))
+            .find { p =>
+              val rectangle = new Rectangle2D.Float(p.getX - poolRadius, p.getY - poolRadius, poolRadius, poolRadius)
+              !lines.exists(rectangle.intersectsLine(_))
+            }
+        }.collectFirst { case Some(point) => point }.get
 
+        action.unitCommand(closestFreeDrone(buildingPoint), Abilities.BUILD_SPAWNING_POOL, buildingPoint, false)
       }
     )
   )
@@ -76,7 +89,15 @@ class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, act
     buildDrone,
     buildDrone,
     buildDrone,
-    buildExtractor
+    buildExtractor,
+    buildSpawningPool,
+//    Sequence {
+//      Condition(() => obs.getMinerals >= 200),
+//      Action {
+//        action.unitCommand(freeDrones, Abilities.MOVE,)
+//      }
+//      )
+//    }
     //    buildSpawningPool,
     //    buildGas,
   )

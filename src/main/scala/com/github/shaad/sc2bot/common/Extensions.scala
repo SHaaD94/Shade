@@ -8,8 +8,8 @@ import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC
 import scala.jdk.CollectionConverters._
 
 object Extensions {
-  def buildingSize(buildAbility: Ability)(implicit observation: ObservationInterface): Double = {
-    observation.getAbilityData(false).get(buildAbility).getFootprintRadius.orElse(0F).toDouble
+  def buildingSize(buildAbility: Ability)(implicit observation: ObservationInterface): Float = {
+    observation.getAbilityData(false).get(buildAbility).getFootprintRadius.orElse(0F)
   }
 
   def canAfford(unitType: UnitType)(implicit observation: ObservationInterface): Boolean = {
@@ -61,6 +61,8 @@ object Extensions {
   def units(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
     observation.getUnits({ (u: UnitInPool) => filter(u) }).iterator().asScala
   }
+
+//  def nextExpansionLocation()
 
   @deprecated("used in terran bot, Shade should not use it")
   def myAliveUnits(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {

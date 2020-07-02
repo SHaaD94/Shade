@@ -1,7 +1,7 @@
 package com.github.shaad.sc2bot
 
 import com.github.ocraft.s2client.bot.S2Agent
-import com.github.ocraft.s2client.bot.gateway.{ActionInterface, ControlInterface, ObservationInterface, QueryInterface}
+import com.github.ocraft.s2client.bot.gateway.{ActionInterface, ControlInterface, DebugInterface, ObservationInterface, QueryInterface}
 import com.github.ocraft.s2client.protocol.debug.Color
 import com.github.ocraft.s2client.protocol.observation.raw.MapState
 import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
@@ -17,6 +17,8 @@ class BotBase extends S2Agent with LazyLogging {
   protected implicit def controlInterface: ControlInterface = control()
 
   protected implicit def actionInterface: ActionInterface = actions()
+
+  protected implicit def debugInterface: DebugInterface = debug()
 
   protected lazy val expansionLocations: Seq[Point] = query().calculateExpansionLocations(observation()).asScala.toSeq
   protected lazy val heightMap = initHeightMap()

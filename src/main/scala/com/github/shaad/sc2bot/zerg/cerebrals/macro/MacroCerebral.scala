@@ -13,7 +13,7 @@ import com.github.shaad.sc2bot.zerg.ZergExtensions._
  * 2. Constructs buildings
  * 3. Creates new expansions
  */
-class MacroCerebral(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface) {
+class MacroCerebral(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug : DebugInterface) {
   val commonNodes = new CommonNodes
 
   import commonNodes._
