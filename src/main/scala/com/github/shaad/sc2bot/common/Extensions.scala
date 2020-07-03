@@ -9,7 +9,6 @@ import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC
 import scala.jdk.CollectionConverters._
 
 object Extensions {
-
   def pathingDistance(from: Point2d, to: Point2d)(implicit queryInterface: QueryInterface) = {
     val distance = queryInterface.pathingDistance(from, to)
     if (distance == 0.0) Float.MaxValue else distance

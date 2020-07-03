@@ -31,6 +31,16 @@ case class Action(func: () => Unit) extends Node {
   }
 }
 
+// Does something then observed node is finished
+case class Watcher(node: Node)(func: () => Unit) extends Node {
+  override def eval(): Boolean = {
+    if (!node.eval()) return false
+
+    func()
+    true
+  }
+}
+
 case class StateFullSequence(nodes: Node*) {
   private var nodesLeft = nodes
 

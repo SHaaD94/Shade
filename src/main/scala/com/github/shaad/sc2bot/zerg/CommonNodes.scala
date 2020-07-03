@@ -1,16 +1,15 @@
 package com.github.shaad.sc2bot.zerg
 
 import java.awt.geom.{Line2D, Rectangle2D}
-import java.awt.{Polygon, Rectangle}
+
+import com.github.ocraft.s2client.bot.gateway._
+import com.github.ocraft.s2client.protocol.data.{Abilities, Units}
+import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
+import com.github.shaad.sc2bot.common.Extensions._
+import com.github.shaad.sc2bot.common.{Action, Condition, Sequence}
+import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
 import scala.jdk.CollectionConverters._
-import com.github.ocraft.s2client.bot.gateway.{ActionInterface, ControlInterface, DebugInterface, ObservationInterface, QueryInterface}
-import com.github.ocraft.s2client.protocol.data.{Abilities, Units}
-import com.github.ocraft.s2client.protocol.debug.Color
-import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
-import com.github.shaad.sc2bot.common.{Action, Condition, Sequence, StateFullSequence}
-import com.github.shaad.sc2bot.common.Extensions._
-import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
 class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
 
@@ -46,6 +45,7 @@ class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationI
       }
     )
   )
+
   val buildSpawningPool = Sequence(
     Sequence(
       Condition { () => canAfford(Units.ZERG_SPAWNING_POOL) },
@@ -78,24 +78,6 @@ class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationI
       }
     )
   )
-  val earlyBuildOrder = StateFullSequence(
-    buildDrone,
-    buildOverlord,
-    buildDrone,
-    buildDrone,
-    buildDrone,
-    buildExtractor,
-    buildSpawningPool,
-    Sequence(
-      Condition { () => obs.getMinerals >= 200 },
-      Action { () =>
-        val nextLocation = nextExpansion
-
-        action.unitCommand(closestFreeDrone(nextLocation), Abilities.MOVE, nextLocation, false)
-      }
-    ),
-    buildHatchery(nextExpansion)
-  )
 
   def buildHatchery(point: => Point2d) = {
     Sequence(
@@ -104,7 +86,7 @@ class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationI
     )
   }
 
-  private def nextExpansion =
+  def nextExpansion =
     expansionLocations
       .filter(canBuild(Units.ZERG_HATCHERY, _))
       .minBy { p => pathingDistance(obs.getStartLocation.toPoint2d.sub(buildingRadius(Abilities.BUILD_HATCHERY), 0F), p) }
