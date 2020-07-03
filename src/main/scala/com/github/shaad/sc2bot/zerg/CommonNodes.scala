@@ -12,7 +12,7 @@ import com.github.shaad.sc2bot.common.{Action, Condition, Sequence, StateFullSeq
 import com.github.shaad.sc2bot.common.Extensions._
 import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
-class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
+class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
 
   val buildDrone = Sequence(
     Condition { () => enoughFood(Units.ZERG_DRONE) && larvas.nonEmpty && canAfford(Units.ZERG_DRONE) },
@@ -38,25 +38,21 @@ class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, act
         val busyExtractors = myExtractors ++ orderedExtractors
 
         val geyser = vespeneGeysers()
-          .toSeq
           .filter(g => !busyExtractors.contains(g.getPosition))
-          // TODO figure out the problem with pathing distance
-          //          .minBy(g => mainBuildings.map(m => query.pathingDistance(m.getPosition, g.getPosition.toPoint2d)).min)
-          .minBy(g => mainBuildings.map(m => m.getPosition.distance(g.getPosition)).min)
+          .minBy(g => mainBuildings.map(m => pathingDistance(m.getPosition.toPoint2d.sub(buildingRadius(Abilities.BUILD_HATCHERY), 0F), g.getPosition.toPoint2d.sub(buildingRadius(Abilities.BUILD_EXTRACTOR), 0F))).min)
           .unit()
 
         action.unitCommand(closestFreeDrone(geyser.getPosition), Abilities.BUILD_EXTRACTOR, geyser, false)
       }
     )
   )
-
   val buildSpawningPool = Sequence(
     Sequence(
       Condition { () => canAfford(Units.ZERG_SPAWNING_POOL) },
       Action { () =>
         val startLocation = obs.getStartLocation
 
-        val poolRadius = buildingSize(Abilities.BUILD_SPAWNING_POOL)
+        val poolRadius = buildingRadius(Abilities.BUILD_SPAWNING_POOL)
 
         // will be divided by 2
         val distanceFromHatchery = 10
@@ -82,7 +78,6 @@ class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, act
       }
     )
   )
-
   val earlyBuildOrder = StateFullSequence(
     buildDrone,
     buildOverlord,
@@ -91,16 +86,27 @@ class CommonNodes(implicit obs: ObservationInterface, query: QueryInterface, act
     buildDrone,
     buildExtractor,
     buildSpawningPool,
-//    Sequence {
-//      Condition(() => obs.getMinerals >= 200),
-//      Action {
-//        action.unitCommand(freeDrones, Abilities.MOVE,)
-//      }
-//      )
-//    }
-    //    buildSpawningPool,
-    //    buildGas,
+    Sequence(
+      Condition { () => obs.getMinerals >= 200 },
+      Action { () =>
+        val nextLocation = nextExpansion
+
+        action.unitCommand(closestFreeDrone(nextLocation), Abilities.MOVE, nextLocation, false)
+      }
+    ),
+    buildHatchery(nextExpansion)
   )
 
+  def buildHatchery(point: => Point2d) = {
+    Sequence(
+      Condition { () => canAfford(Units.ZERG_HATCHERY) },
+      Action { () => action.unitCommand(closestDrone(point), Abilities.BUILD_HATCHERY, point, false) },
+    )
+  }
+
+  private def nextExpansion =
+    expansionLocations
+      .filter(canBuild(Units.ZERG_HATCHERY, _))
+      .minBy { p => pathingDistance(obs.getStartLocation.toPoint2d.sub(buildingRadius(Abilities.BUILD_HATCHERY), 0F), p) }
 
 }

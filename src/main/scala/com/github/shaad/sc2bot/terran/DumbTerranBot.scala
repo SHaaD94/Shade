@@ -2,6 +2,7 @@ package com.github.shaad.sc2bot.terran
 
 import com.github.ocraft.s2client.bot.gateway.UnitInPool
 import com.github.ocraft.s2client.protocol.data.{Abilities, Units}
+import com.github.ocraft.s2client.protocol.spatial.Point
 import com.github.ocraft.s2client.protocol.unit.{Unit => SC2Unit}
 import com.github.shaad.sc2bot.BotBase
 import com.github.shaad.sc2bot.common.Extensions._
@@ -10,6 +11,8 @@ import com.github.shaad.sc2bot.terran.TerranExtensions._
 import scala.jdk.CollectionConverters._
 
 class DumbTerranBot extends BotBase {
+  private lazy val expansionLocations: Seq[Point] = query.calculateExpansionLocations(obs).asScala.toSeq
+
   private var attacking = false
 
   override def onGameStart(): Unit = {

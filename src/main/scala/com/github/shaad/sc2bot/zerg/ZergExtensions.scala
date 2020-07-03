@@ -19,6 +19,9 @@ object ZergExtensions {
     myUnits(_.getType == Units.ZERG_DRONE, _.getAbility == Abilities.HARVEST_GATHER)
       .minBy(_.getPosition.distance(point))
 
+  def closestDrone(point: Point2d)(implicit observationInterface: ObservationInterface): UnitInPool =
+    myUnits(_.getType == Units.ZERG_DRONE).minBy(_.getPosition.distance(point))
+
   def mainBuildings(implicit observationInterface: ObservationInterface): Iterator[UnitInPool] =
     myUnits(x => x.getType == Units.ZERG_HATCHERY || x.getType == Units.ZERG_LAIR || x.getType == Units.ZERG_HIVE)
 }

@@ -2,13 +2,20 @@ package com.github.shaad.sc2bot.common
 
 import com.github.ocraft.s2client.bot.gateway.{ObservationInterface, QueryInterface, UnitInPool}
 import com.github.ocraft.s2client.protocol.data.{Abilities, Ability, UnitType, UnitTypeData, Units}
+import com.github.ocraft.s2client.protocol.game.Race
 import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
 import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC2Unit}
 
 import scala.jdk.CollectionConverters._
 
 object Extensions {
-  def buildingSize(buildAbility: Ability)(implicit observation: ObservationInterface): Float = {
+
+  def pathingDistance(from: Point2d, to: Point2d)(implicit queryInterface: QueryInterface) = {
+    val distance = queryInterface.pathingDistance(from, to)
+    if (distance == 0.0) Float.MaxValue else distance
+  }
+
+  def buildingRadius(buildAbility: Ability)(implicit observation: ObservationInterface): Float = {
     observation.getAbilityData(false).get(buildAbility).getFootprintRadius.orElse(0F)
   }
 
@@ -16,11 +23,22 @@ object Extensions {
     mineralCost(unitType) <= observation.getMinerals && vespeneCost(unitType) <= observation.getVespene
   }
 
-  def mineralCost(unitType: UnitType)(implicit observation: ObservationInterface): Int = observation
-    .getUnitTypeData(false).get(unitType).getMineralCost.get()
+  def mineralCost(unitType: UnitType)(implicit observation: ObservationInterface): Int = {
+    val unitInfo = observation.getUnitTypeData(false).get(unitType)
+    val droneCost = if (unitInfo.getRace.filter(_ == Race.ZERG).isPresent && unitInfo.getFoodRequired.isEmpty && unitType != Units.ZERG_OVERLORD) mineralCost(Units.ZERG_DRONE) else 0
+    unitInfo.getTechAliases.asScala.headOption match {
+      case Some(alias) => unitInfo.getMineralCost.get() - observation.getUnitTypeData(false).get(alias).getMineralCost.get()
+      case None => unitInfo.getMineralCost.get() - droneCost
+    }
+  }
 
-  def vespeneCost(unitType: UnitType)(implicit observation: ObservationInterface): Int = observation
-    .getUnitTypeData(false).get(unitType).getVespeneCost.get()
+  def vespeneCost(unitType: UnitType)(implicit observation: ObservationInterface): Int = {
+    val unitInfo = observation.getUnitTypeData(false).get(unitType)
+    unitInfo.getTechAliases.asScala.headOption match {
+      case Some(alias) => unitInfo.getMineralCost.get() - observation.getUnitTypeData(false).get(alias).getVespeneCost.get()
+      case None => unitInfo.getVespeneCost.get()
+    }
+  }
 
   def unitData(unitType: UnitType)(implicit observation: ObservationInterface): UnitTypeData = observation
     .getUnitTypeData(false).get(unitType)
@@ -61,8 +79,6 @@ object Extensions {
   def units(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
     observation.getUnits({ (u: UnitInPool) => filter(u) }).iterator().asScala
   }
-
-//  def nextExpansionLocation()
 
   @deprecated("used in terran bot, Shade should not use it")
   def myAliveUnits(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {

@@ -12,15 +12,18 @@ import com.github.shaad.sc2bot.zerg.cerebrals.`macro`.MacroCerebral
 import com.github.shaad.sc2bot.zerg.cerebrals.micro.MicroCerebral
 
 class Shade extends BotBase {
-  private val macroCerebral = new MacroCerebral()
-  private val microCerebral = new MicroCerebral()
+  private lazy val macroCerebral = new MacroCerebral()
+  private lazy val microCerebral = new MicroCerebral()
 
   override def onStep(): Unit = {
     macroCerebral.serve()
     microCerebral.serve()
   }
 
-  override def onGameFullStart(): Unit = {}
+  override def onGameFullStart(): Unit = {
+    // clear debug of previous session
+    debug().sendDebug()
+  }
 
   override def onGameStart(): Unit = {}
 

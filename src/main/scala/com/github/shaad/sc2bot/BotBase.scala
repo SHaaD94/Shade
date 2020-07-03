@@ -20,7 +20,6 @@ class BotBase extends S2Agent with LazyLogging {
 
   protected implicit def debugInterface: DebugInterface = debug()
 
-  protected lazy val expansionLocations: Seq[Point] = query().calculateExpansionLocations(observation()).asScala.toSeq
   protected lazy val heightMap = initHeightMap()
 
   protected def map(): MapState = observation().getRawObservation.getRaw.get().getMapState
