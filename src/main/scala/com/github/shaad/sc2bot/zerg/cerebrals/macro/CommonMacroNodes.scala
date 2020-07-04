@@ -1,29 +1,19 @@
-package com.github.shaad.sc2bot.zerg
+package com.github.shaad.sc2bot.zerg.cerebrals.`macro`
 
 import java.awt.geom.{Line2D, Rectangle2D}
 
 import com.github.ocraft.s2client.bot.gateway._
-import com.github.ocraft.s2client.protocol.data.{Abilities, Units}
+import com.github.ocraft.s2client.protocol.data.{Abilities, UnitType, Units}
 import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
 import com.github.shaad.sc2bot.common.Extensions._
-import com.github.shaad.sc2bot.common.{Action, Condition, Sequence}
+import com.github.shaad.sc2bot.common.{Action, Condition, Sequence, StateFullSequence}
 import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
 import scala.jdk.CollectionConverters._
 
-class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
-
-  val buildDrone = Sequence(
-    Condition { () => enoughFood(Units.ZERG_DRONE) && larvas.nonEmpty && canAfford(Units.ZERG_DRONE) },
-    Action { () => action.unitCommand(larvas.next(), Abilities.TRAIN_DRONE, false) }
-  )
-
-  val buildOverlord = Sequence(
-    Sequence(
-      Condition { () => canAfford(Units.ZERG_OVERLORD) },
-      Action { () => action.unitCommand(larvas.next(), Abilities.TRAIN_OVERLORD, false) }
-    )
-  )
+class CommonMacroNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
+  val buildDrone = buildUnit(Units.ZERG_DRONE)
+  val buildOverlord = buildUnit(Units.ZERG_OVERLORD)
 
   val buildExtractor = Sequence(
     Sequence(
@@ -45,7 +35,6 @@ class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationI
       }
     )
   )
-
   val buildSpawningPool = Sequence(
     Sequence(
       Condition { () => canAfford(Units.ZERG_SPAWNING_POOL) },
@@ -79,6 +68,28 @@ class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationI
     )
   )
 
+  def buildQueen(hatchery: UnitInPool) = Sequence(
+    Condition { () => enoughFood(Units.ZERG_QUEEN) && canAfford(Units.ZERG_QUEEN) },
+    Action { () => action.unitCommand(hatchery, Abilities.TRAIN_QUEEN, false) }
+  )
+
+  def buildUnit(unitType: UnitType) = Sequence(
+    Condition { () => enoughFood(unitType) && larvas.nonEmpty && canAfford(unitType) },
+    Action { () =>
+      require(Units.ZERG_LARVA.getAbilities.contains(abilityToBuild(unitType)), s"Larva doesn't have ability ${abilityToBuild(unitType)}")
+
+      action.unitCommand(larvas.next(), unitType, false)
+    }
+  )
+
+  def unassignDronesFromVespene(unit: UnitInPool, workers: Int): Unit = {
+    require(unit.getType.toString.contains("EXTRACTOR"), s"Wrong unit type ${unit.getType}")
+    val closestMainBuilding = mainBuildings.minBy(_.getPosition.distance(unit))
+    val closestMineral = minerals().minBy(_.getPosition.distance(closestMainBuilding))
+    myUnits(_.getType == Units.ZERG_DRONE, o => o.getTargetedUnitTag.filter(_ == unit.getTag).isPresent).take(workers)
+      .foreach(action.unitCommand(_, Abilities.HARVEST_GATHER, closestMineral, false))
+  }
+
   def buildHatchery(point: => Point2d) = {
     Sequence(
       Condition { () => canAfford(Units.ZERG_HATCHERY) },
@@ -90,5 +101,4 @@ class CommonNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationI
     expansionLocations
       .filter(canBuild(Units.ZERG_HATCHERY, _))
       .minBy { p => pathingDistance(obs.getStartLocation.toPoint2d.sub(buildingRadius(Abilities.BUILD_HATCHERY), 0F), p) }
-
 }

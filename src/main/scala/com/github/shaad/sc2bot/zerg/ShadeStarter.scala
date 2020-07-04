@@ -13,7 +13,7 @@ object ShadeStarter extends App {
   val s2Coordinator = S2Coordinator.setup
     .setProcessPath(Paths.get(Constants.executable))
     .setPortStart(Constants.port)
-//    .setRealtime(true)
+    .setRealtime(true)
     .setWindowSize(2500, 1500)
     .setParticipants(S2Coordinator.createParticipant(Race.ZERG, bot),
       S2Coordinator.createComputer(Race.TERRAN, Difficulty.HARD))

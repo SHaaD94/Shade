@@ -1,7 +1,7 @@
 package com.github.shaad.sc2bot.common
 
 import com.github.ocraft.s2client.bot.gateway.{ObservationInterface, QueryInterface, UnitInPool}
-import com.github.ocraft.s2client.protocol.data.{Abilities, Ability, UnitType, UnitTypeData, Units}
+import com.github.ocraft.s2client.protocol.data.{Abilities, Ability, UnitType, UnitTypeData, Units, Upgrade}
 import com.github.ocraft.s2client.protocol.game.Race
 import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
 import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC2Unit}
@@ -9,6 +9,12 @@ import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC
 import scala.jdk.CollectionConverters._
 
 object Extensions {
+  implicit def abilityToBuild(unitType: UnitType)(implicit observationInterface: ObservationInterface): Ability = {
+    observationInterface.getUnitTypeData(false).get(unitType).getAbility.orElseThrow(() =>
+      new RuntimeException(s"Didn't found an ability to build unit $unitType")
+    )
+  }
+
   def pathingDistance(from: Point2d, to: Point2d)(implicit queryInterface: QueryInterface) = {
     val distance = queryInterface.pathingDistance(from, to)
     if (distance == 0.0) Float.MaxValue else distance
@@ -22,13 +28,27 @@ object Extensions {
     mineralCost(unitType) <= observation.getMinerals && vespeneCost(unitType) <= observation.getVespene
   }
 
+  def canAfford(upgrade: Upgrade)(implicit observation: ObservationInterface): Boolean = {
+    mineralCost(upgrade) <= observation.getMinerals && vespeneCost(upgrade) <= observation.getVespene
+  }
+
+  def mineralCost(upgrade: Upgrade)(implicit observation: ObservationInterface): Int = {
+    observation.getUpgradeData(false).get(upgrade).getMineralCost.orElse(0)
+  }
+
+  def vespeneCost(upgrade: Upgrade)(implicit observation: ObservationInterface): Int = {
+    observation.getUpgradeData(false).get(upgrade).getVespeneCost.orElse(0)
+  }
+
   def mineralCost(unitType: UnitType)(implicit observation: ObservationInterface): Int = {
     val unitInfo = observation.getUnitTypeData(false).get(unitType)
     val droneCost = if (unitInfo.getRace.filter(_ == Race.ZERG).isPresent && unitInfo.getFoodRequired.isEmpty && unitType != Units.ZERG_OVERLORD) mineralCost(Units.ZERG_DRONE) else 0
-    unitInfo.getTechAliases.asScala.headOption match {
+    val result = unitInfo.getTechAliases.asScala.headOption match {
       case Some(alias) => unitInfo.getMineralCost.get() - observation.getUnitTypeData(false).get(alias).getMineralCost.get()
       case None => unitInfo.getMineralCost.get() - droneCost
     }
+    //TODO come up with better solution for building zerglings, using requiredfood < 0.5, is not applicable because of baneling
+    if (unitType == Units.ZERG_ZERGLING) result * 2 else result
   }
 
   def vespeneCost(unitType: UnitType)(implicit observation: ObservationInterface): Int = {
@@ -44,11 +64,14 @@ object Extensions {
 
   def enoughFood(unitType: UnitType)(implicit observation: ObservationInterface): Boolean = observation.getFoodCap - observation.getFoodUsed >= food(unitType)
 
-  def food(unitType: UnitType)(implicit observation: ObservationInterface): Int = observation
-    .getUnitTypeData(false).get(unitType).getCargoSize.get()
-
-  implicit def abilityToBuild(unitType: UnitType)(implicit observation: ObservationInterface): Ability = observation
-    .getUnitTypeData(false).get(unitType).getAbility.get()
+  def food(unitType: UnitType)(implicit observation: ObservationInterface): Float = {
+    val typeData = observation.getUnitTypeData(false)
+    val unitFood = typeData.get(unitType).getFoodRequired.orElse(0F)
+    typeData.get(unitType).getTechAliases.asScala.headOption match {
+      case Some(foodForInitialUnit) => unitFood - typeData.get(foodForInitialUnit).getFoodRequired.orElse(0F)
+      case None => unitFood
+    }
+  }
 
   def canBuild(unit: UnitType, point: Point2d)(implicit queryInterface: QueryInterface, observationInterface: ObservationInterface) =
     queryInterface.placement(unit, point)
@@ -60,6 +83,10 @@ object Extensions {
   def vespeneGeysers(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
     units(u => (
       u.getType.toString.contains("NEUTRAL") && u.getType.toString.contains("VESPEN")) && filter(u))
+  }
+
+  def units(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
+    observation.getUnits({ (u: UnitInPool) => filter(u) }).iterator().asScala
   }
 
   def myUnits(unitFilter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
@@ -74,10 +101,6 @@ object Extensions {
   }
 
   def ramps(implicit observation: ObservationInterface) = units(_.getType.toString.contains("RAMP"))
-
-  def units(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
-    observation.getUnits({ (u: UnitInPool) => filter(u) }).iterator().asScala
-  }
 
   @deprecated("used in terran bot, Shade should not use it")
   def myAliveUnits(filter: UnitInPool => Boolean = { _ => true })(implicit observation: ObservationInterface): Iterator[UnitInPool] = {

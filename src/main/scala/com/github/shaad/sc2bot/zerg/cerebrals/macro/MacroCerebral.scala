@@ -5,7 +5,6 @@ import com.github.ocraft.s2client.protocol.data.{Abilities, Units, Upgrade}
 import com.github.ocraft.s2client.protocol.spatial.Point
 import com.github.shaad.sc2bot.common.{Action, Condition, Selector, Sequence, StateFullSequence, Watcher}
 import com.github.shaad.sc2bot.common.Extensions._
-import com.github.shaad.sc2bot.zerg.CommonNodes
 import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
 import scala.collection.mutable
@@ -16,36 +15,21 @@ import scala.jdk.CollectionConverters._
  * 2. Constructs buildings
  * 3. Creates new expansions
  */
-class MacroCerebral(macroBuildOrders: MacroBuildOrders)(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
+class MacroCerebral()(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
   private lazy val expansionLocations: Seq[Point] = query.calculateExpansionLocations(obs).asScala.toSeq
+  private val macroActionQueue = new MacroActionQueue()
 
-  private val commonNodes = new CommonNodes(expansionLocations)
+  private val commonNodes = new CommonMacroNodes(expansionLocations)
+  private val goalManager = new GoalManager(macroActionQueue, commonNodes)
 
   import commonNodes._
 
-  private val earlyBuildOrder = StateFullSequence(
-    buildDrone,
-    buildOverlord,
-    buildDrone,
-    buildDrone,
-    buildDrone,
-    buildExtractor,
-    buildSpawningPool,
-    Sequence(
-      Condition { () => obs.getMinerals >= 200 },
-      Action { () =>
-        val nextLocation = nextExpansion
-
-        action.unitCommand(closestFreeDrone(nextLocation), Abilities.MOVE, nextLocation, false)
-      }
-    ),
-    buildHatchery(nextExpansion)
-  )
-
-  macroBuildOrders.addPlan(earlyBuildOrder)
+  macroActionQueue.addSequence(new EarlyBuildOrder(commonNodes, macroActionQueue).earlyBuildOrder)
 
   def serve(): Unit = {
-    macroBuildOrders.execute()
+    val a = obs.getAbilityData(false)
+    goalManager.process()
+    macroActionQueue.executeNext()
   }
 
   def onDroneIdle(unitInPool: UnitInPool): Unit = {}
@@ -55,4 +39,3 @@ class MacroCerebral(macroBuildOrders: MacroBuildOrders)(implicit obs: Observatio
   def onBuildingCompleted(unitInPool: UnitInPool): Unit = {}
 }
 
-case class MacroGoal()
