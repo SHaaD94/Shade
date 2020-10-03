@@ -1,25 +1,20 @@
-// Apply the scala plugin to add support for Scala
 apply plugin: 'scala'
 apply plugin: 'idea'
 
-// In this section you declare where to find the dependencies of your project
 repositories {
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
     jcenter()
 }
 
-// In this section you declare the dependencies for your production and test code
+compileScala.targetCompatibility = 1.8
+
 dependencies {
     compile 'org.scala-lang:scala-library:2.13.0'
     compile "org.scala-lang:scala-reflect:2.13.0"
 
-    compile 'com.github.ocraft:ocraft-s2client-bot:0.3.17'
+    compile 'com.github.ocraft:ocraft-s2client-bot:0.4.3'
 
     compile group: 'com.typesafe.scala-logging', name: 'scala-logging_2.13', version: '3.9.2'
 
-    // We use Scalatest for testing our library
     testCompile 'junit:junit:4.12'
-    testCompile 'org.scalatest:scalatest_2.13:2.2.6'
-    testRuntime 'org.scala-lang.modules:scala-xml_2.13:1.0.5'
+    testCompile 'org.scalatest:scalatest_2.13:3.2.2'
 }

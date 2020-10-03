@@ -11,14 +11,15 @@ import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
 import scala.jdk.CollectionConverters._
 
-class CommonMacroNodes(val expansionLocations: Seq[Point])(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
+class CommonMacroNodes(resourceManager: ResourceManager, val expansionLocations: Seq[Point])(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface, debug: DebugInterface) {
   val buildDrone = buildUnit(Units.ZERG_DRONE)
   val buildOverlord = buildUnit(Units.ZERG_OVERLORD)
 
   val buildExtractor = Sequence(
     Sequence(
-      Condition { () => canAfford(Units.ZERG_EXTRACTOR) && freeDrones.nonEmpty },
-      Action { () =>
+      Action { id => resourceManager.reserveResources(id, Units.ZERG_EXTRACTOR) },
+      Condition { id => freeDrones.nonEmpty && resourceManager.removeReservationIfEnough(id) },
+      Action { id =>
         val myExtractors = myUnits(_.getType == Units.ZERG_EXTRACTOR).map(_.getPosition).toSeq
         val orderedExtractors = myUnits(_.getType == Units.ZERG_DRONE).flatMap(_.getOrders.asScala)
           .filter(_.getAbility == Abilities.BUILD_EXTRACTOR)
@@ -37,8 +38,9 @@ class CommonMacroNodes(val expansionLocations: Seq[Point])(implicit obs: Observa
   )
   val buildSpawningPool = Sequence(
     Sequence(
-      Condition { () => canAfford(Units.ZERG_SPAWNING_POOL) },
-      Action { () =>
+      Action { id => resourceManager.reserveResources(id, Units.ZERG_SPAWNING_POOL) },
+      Condition { id => resourceManager.removeReservationIfEnough(id) },
+      Action { id =>
         val startLocation = obs.getStartLocation
 
         val poolRadius = buildingRadius(Abilities.BUILD_SPAWNING_POOL)
@@ -69,13 +71,15 @@ class CommonMacroNodes(val expansionLocations: Seq[Point])(implicit obs: Observa
   )
 
   def buildQueen(hatchery: UnitInPool) = Sequence(
-    Condition { () => enoughFood(Units.ZERG_QUEEN) && canAfford(Units.ZERG_QUEEN) },
-    Action { () => action.unitCommand(hatchery, Abilities.TRAIN_QUEEN, false) }
+    Action { id => resourceManager.reserveResources(id, Units.ZERG_QUEEN) },
+    Condition { id => resourceManager.removeReservationIfEnough(id) },
+    Action { id => action.unitCommand(hatchery, Abilities.TRAIN_QUEEN, false) }
   )
 
   def buildUnit(unitType: UnitType) = Sequence(
-    Condition { () => enoughFood(unitType) && larvas.nonEmpty && canAfford(unitType) },
-    Action { () =>
+    Action { id => resourceManager.reserveResources(id, unitType) },
+    Condition { id => larvas.nonEmpty && resourceManager.removeReservationIfEnough(id) },
+    Action { id =>
       require(Units.ZERG_LARVA.getAbilities.contains(abilityToBuild(unitType)), s"Larva doesn't have ability ${abilityToBuild(unitType)}")
 
       action.unitCommand(larvas.next(), unitType, false)
@@ -92,8 +96,9 @@ class CommonMacroNodes(val expansionLocations: Seq[Point])(implicit obs: Observa
 
   def buildHatchery(point: => Point2d) = {
     Sequence(
-      Condition { () => canAfford(Units.ZERG_HATCHERY) },
-      Action { () => action.unitCommand(closestDrone(point), Abilities.BUILD_HATCHERY, point, false) },
+      Action { id => resourceManager.reserveResources(id, Units.ZERG_HATCHERY) },
+      Condition { id => resourceManager.removeReservationIfEnough(id) },
+      Action { id => action.unitCommand(closestDrone(point), Abilities.BUILD_HATCHERY, point, false) },
     )
   }
 

@@ -19,12 +19,13 @@ class MacroCerebral()(implicit obs: ObservationInterface, query: QueryInterface,
   private lazy val expansionLocations: Seq[Point] = query.calculateExpansionLocations(obs).asScala.toSeq
   private val macroActionQueue = new MacroActionQueue()
 
-  private val commonNodes = new CommonMacroNodes(expansionLocations)
+  private val resourceManager = new ResourceManager
+  private val commonNodes = new CommonMacroNodes(resourceManager, expansionLocations)
   private val goalManager = new GoalManager(macroActionQueue, commonNodes)
 
   import commonNodes._
 
-  macroActionQueue.addSequence(new EarlyBuildOrder(commonNodes, macroActionQueue).earlyBuildOrder)
+  macroActionQueue.addSequence(new EarlyBuildOrder(resourceManager, commonNodes, macroActionQueue).earlyBuildOrder)
 
   def serve(): Unit = {
     val a = obs.getAbilityData(false)
@@ -38,4 +39,3 @@ class MacroCerebral()(implicit obs: ObservationInterface, query: QueryInterface,
 
   def onBuildingCompleted(unitInPool: UnitInPool): Unit = {}
 }
-
