@@ -46,7 +46,7 @@ class EarlyBuildOrder(resourceManager: ResourceManager,
       // after gather enough gas, unassign workers 2/3 from gas
       Sequence(
         Action { id => resourceManager.reserveResources(id, Upgrades.ZERGLING_MOVEMENT_SPEED) },
-        Condition(id => resourceManager.removeReservationIfEnough(id)),
+        Condition(id => resourceManager.enoughResources(id)),
         Action { id =>
           unassignDronesFromVespene(myUnits(_.getType == Units.ZERG_EXTRACTOR).next(), 2)
         }

@@ -1,7 +1,7 @@
 package com.github.shaad.sc2bot.common
 
 import com.github.ocraft.s2client.bot.gateway.{ObservationInterface, QueryInterface, UnitInPool}
-import com.github.ocraft.s2client.protocol.data.{Abilities, Ability, UnitType, UnitTypeData, Units, Upgrade}
+import com.github.ocraft.s2client.protocol.data._
 import com.github.ocraft.s2client.protocol.game.Race
 import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
 import com.github.ocraft.s2client.protocol.unit.{Alliance, UnitOrder, Unit => SC2Unit}
@@ -23,14 +23,6 @@ object Extensions {
   def buildingRadius(buildAbility: Ability)(implicit observation: ObservationInterface): Float = {
     observation.getAbilityData(false).get(buildAbility).getFootprintRadius.orElse(0F)
   }
-
-  //  def canAfford(unitType: UnitType)(implicit observation: ObservationInterface): Boolean = {
-  //    mineralCost(unitType) <= observation.getMinerals && vespeneCost(unitType) <= observation.getVespene
-  //  }
-
-  //  def canAfford(upgrade: Upgrade)(implicit observation: ObservationInterface): Boolean = {
-  //    mineralCost(upgrade) <= observation.getMinerals && vespeneCost(upgrade) <= observation.getVespene
-  //  }
 
   def mineralCost(upgrade: Upgrade)(implicit observation: ObservationInterface): Int = {
     observation.getUpgradeData(false).get(upgrade).getMineralCost.orElse(0)
@@ -97,6 +89,8 @@ object Extensions {
     observation.getUnits(Alliance.SELF, { (u: UnitInPool) => unitFilter(u) }).iterator().asScala
   }
 
+  def myUnits(unitType: UnitType)(implicit observation: ObservationInterface): Iterator[UnitInPool] = myUnits(_.getType == unitType)
+
   def myUnits(unitFilter: UnitInPool => Boolean,
               orderFilter: UnitOrder => Boolean)(implicit observation: ObservationInterface): Iterator[UnitInPool] = {
     observation.getUnits(Alliance.SELF, { (u: UnitInPool) =>
@@ -119,6 +113,14 @@ object Extensions {
 
   implicit class UnitInPoolImplicits(val unit: UnitInPool) extends AnyVal {
     def isMine(implicit observationInterface: ObservationInterface): Boolean = observationInterface.getPlayerId == unit.getOwner
+
+    def hasOrderWithAbility(ability: Ability)(implicit observationInterface: ObservationInterface): Boolean =
+      unit.getOrders.asScala.exists(_.getAbility == ability)
+
+    def abilityAvailable(ability: Ability)(implicit queryInterface: QueryInterface): Boolean = {
+      queryInterface.getAbilitiesForUnit(unit, false)
+        .getAbilities.asScala.exists(_.getAbility == ability)
+    }
   }
 
 }

@@ -36,9 +36,10 @@ class CommonMacroNodes(resourceManager: ResourceManager, val expansionLocations:
       }
     )
   )
+
   def constructBuild(unitType: UnitType) = Sequence(
     Sequence(
-      Action { id => resourceManager.reserveResources(id, Units.ZERG_SPAWNING_POOL) },
+      Action { id => resourceManager.reserveResources(id, unitType) },
       Condition { id => resourceManager.removeReservationIfEnough(id) },
       Action { id =>
         val startLocation = obs.getStartLocation
