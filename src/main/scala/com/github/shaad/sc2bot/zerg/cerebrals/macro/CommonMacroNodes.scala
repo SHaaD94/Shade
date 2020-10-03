@@ -36,14 +36,14 @@ class CommonMacroNodes(resourceManager: ResourceManager, val expansionLocations:
       }
     )
   )
-  val buildSpawningPool = Sequence(
+  def constructBuild(unitType: UnitType) = Sequence(
     Sequence(
       Action { id => resourceManager.reserveResources(id, Units.ZERG_SPAWNING_POOL) },
       Condition { id => resourceManager.removeReservationIfEnough(id) },
       Action { id =>
         val startLocation = obs.getStartLocation
 
-        val poolRadius = buildingRadius(Abilities.BUILD_SPAWNING_POOL)
+        val poolRadius = buildingRadius(abilityToBuild(unitType))
 
         // will be divided by 2
         val distanceFromHatchery = 10

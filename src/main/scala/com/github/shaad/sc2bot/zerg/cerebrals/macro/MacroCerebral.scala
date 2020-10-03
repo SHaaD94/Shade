@@ -1,14 +1,11 @@
 package com.github.shaad.sc2bot.zerg.cerebrals.`macro`
 
 import com.github.ocraft.s2client.bot.gateway._
-import com.github.ocraft.s2client.protocol.data.{Abilities, Units, Upgrade}
+import com.github.ocraft.s2client.protocol.data.{Units, Upgrade}
 import com.github.ocraft.s2client.protocol.spatial.Point
-import com.github.shaad.sc2bot.common.{Action, Condition, Selector, Sequence, StateFullSequence, Watcher}
-import com.github.shaad.sc2bot.common.Extensions._
-import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
+import com.github.shaad.sc2bot.common.Extensions._
 
 /**
  * 1. Controls workers
@@ -28,7 +25,6 @@ class MacroCerebral()(implicit obs: ObservationInterface, query: QueryInterface,
   macroActionQueue.addSequence(new EarlyBuildOrder(resourceManager, commonNodes, macroActionQueue).earlyBuildOrder)
 
   def serve(): Unit = {
-    val a = obs.getAbilityData(false)
     goalManager.process()
     macroActionQueue.executeNext()
   }
@@ -37,5 +33,15 @@ class MacroCerebral()(implicit obs: ObservationInterface, query: QueryInterface,
 
   def onUpgradeCompleted(upgrade: Upgrade): Unit = {}
 
-  def onBuildingCompleted(unitInPool: UnitInPool): Unit = {}
+  def onUnitCreated(unitInPool: UnitInPool): Unit = {
+
+  }
+
+  def onBuildingCompleted(unitInPool: UnitInPool): Unit = {
+    println(unitInPool)
+    // whenever hatchery is built, we need a queen in it
+    if (unitInPool.getType == Units.ZERG_HATCHERY) {
+      macroActionQueue.addSequence(buildQueen(unitInPool))
+    }
+  }
 }

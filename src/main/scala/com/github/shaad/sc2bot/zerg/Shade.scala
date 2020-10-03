@@ -4,7 +4,7 @@ import com.github.ocraft.s2client.bot.gateway.UnitInPool
 import com.github.ocraft.s2client.protocol.data.{Units, Upgrade}
 import com.github.shaad.sc2bot.BotBase
 import com.github.shaad.sc2bot.common.Extensions._
-import com.github.shaad.sc2bot.zerg.cerebrals.`macro`.{MacroActionQueue, MacroCerebral}
+import com.github.shaad.sc2bot.zerg.cerebrals.`macro`.MacroCerebral
 import com.github.shaad.sc2bot.zerg.cerebrals.micro.MicroCerebral
 
 class Shade extends BotBase {
@@ -18,20 +18,22 @@ class Shade extends BotBase {
 
   override def onGameFullStart(): Unit = {
     // clear debug of previous session
-    debug().sendDebug()
   }
 
-  override def onGameStart(): Unit = {}
+  override def onGameStart(): Unit = {
+    obs.getAbilityData(true)
+    debug().sendDebug()
+  }
 
   override def onGameEnd(): Unit = {}
 
   override def onUnitDestroyed(unitInPool: UnitInPool): Unit = {}
 
-  override def onUnitCreated(unitInPool: UnitInPool): Unit = {}
-
-  override def onUnitIdle(unitInPool: UnitInPool): Unit = {
+  override def onUnitCreated(unitInPool: UnitInPool): Unit = {
     if (unitInPool.getType == Units.ZERG_DRONE) {
       macroCerebral.onDroneIdle(unitInPool)
+    } else {
+      macroCerebral.onUnitCreated(unitInPool)
     }
   }
 
