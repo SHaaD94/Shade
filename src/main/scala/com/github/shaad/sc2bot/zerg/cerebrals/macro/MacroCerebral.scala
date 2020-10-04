@@ -2,7 +2,7 @@ package com.github.shaad.sc2bot.zerg.cerebrals.`macro`
 
 import com.github.ocraft.s2client.bot.gateway._
 import com.github.ocraft.s2client.protocol.data.{Abilities, Units, Upgrade}
-import com.github.ocraft.s2client.protocol.spatial.Point
+import com.github.ocraft.s2client.protocol.spatial.{Point, Point2d}
 
 import scala.jdk.CollectionConverters._
 import com.github.shaad.sc2bot.common.Extensions._
@@ -41,13 +41,27 @@ class MacroCerebral()(implicit obs: ObservationInterface, query: QueryInterface,
   def onUpgradeCompleted(upgrade: Upgrade): Unit = {}
 
   def onUnitCreated(unitInPool: UnitInPool): Unit = {
-    if (unitInPool.getType == Units.ZERG_QUEEN) {
-      val hatcheries = mainBuildings.toSeq
-      if (myUnits(Units.ZERG_QUEEN).size < hatcheries.size * 3) {
-        macroActionQueue.addSequence(
-          buildQueen(hatcheries.minBy(_.distance(unitInPool)))
-        )
-      }
+    unitInPool.getType match {
+      // todo move this to proper scheduler
+      case Units.ZERG_QUEEN =>
+        val hatcheries = mainBuildings.toSeq
+        if (myUnits(Units.ZERG_QUEEN).size < hatcheries.size * 3) {
+          macroActionQueue.addSequence(
+            buildQueen(hatcheries.minBy(_.distance(unitInPool)))
+          )
+        }
+
+      // then tumor is born, place tumor if possible
+      case Units.ZERG_CREEP_TUMOR | Units.ZERG_CREEP_TUMOR_BURROWED =>
+//        val spreadRange = 10
+//        ((unitInPool.getPosition.getX - spreadRange).round until (unitInPool.getPosition.getX + spreadRange).round).flatMap { x =>
+//          ((unitInPool.getPosition.getY - spreadRange).round until (unitInPool.getPosition.getY + spreadRange).round).map { y =>
+//            new Point2d(x, y)
+//          }
+//        }.filter(obs.isPathable)
+//          .filter(t => !myUnits(_.getType.toString.contains("TUMOR")).exists(_.toPoint2d.distance(t) < 3.0))
+//          .map(_.dista)
+      case _ =>
     }
   }
 

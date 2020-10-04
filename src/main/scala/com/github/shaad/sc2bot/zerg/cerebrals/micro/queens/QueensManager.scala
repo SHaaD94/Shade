@@ -9,9 +9,17 @@ import scala.collection.mutable
 import com.github.shaad.sc2bot.common.Extensions._
 import com.github.shaad.sc2bot.zerg.ZergExtensions._
 
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Random
 
 class QueensManager(implicit obs: ObservationInterface, query: QueryInterface, action: ActionInterface, control: ControlInterface) {
+  private lazy val creepMap = (0 until obs.getRawObservation.getRaw.get().getMapState.getCreep.getSize.getX).flatMap { x =>
+    (0 until obs.getRawObservation.getRaw.get().getMapState.getCreep.getSize.getY).map { y =>
+      Point2d.of(x.toFloat, y.toFloat)
+    }
+  }.filter(obs.isPathable)
+
+
   private var queen2Role = Map[Tag, QueenRole]()
 
   def assignRoles(): Unit = {
@@ -42,31 +50,49 @@ class QueensManager(implicit obs: ObservationInterface, query: QueryInterface, a
       }
     }
 
+    val tumors = mutable.Set[Point2d]()
+    myUnits(u => u.getType.toString.contains("CREEP_TUMOR")).foreach(t => tumors.add(t.getPosition))
+    myUnits(Units.ZERG_QUEEN)
+      .to(LazyList)
+      .flatMap(_.getOrders.asScala.filter(_.getAbility == Abilities.BUILD_CREEP_TUMOR))
+      .foreach(_.getTargetedWorldSpacePosition.ifPresent(p => tumors.add(p)))
+
     queen2Role.collect {
       case (tag, CreepSpread) => obs.getUnit(tag)
     }
       .filter(!_.hasOrderWithAbility(Abilities.BUILD_CREEP_TUMOR))
       .foreach { queen =>
-        if (queen.abilityAvailable(Abilities.BUILD_CREEP_TUMOR))
-          action.unitCommand(queen, Abilities.BUILD_CREEP_TUMOR, getCreepTumorPosition(queen), false)
+        if (queen.abilityAvailable(Abilities.BUILD_CREEP_TUMOR)) {
+          val tumorPosition = getCreepTumorPosition(queen, tumors)
+          tumors.add(tumorPosition)
+          action.unitCommand(queen, Abilities.BUILD_CREEP_TUMOR, tumorPosition, false)
+        }
       }
   }
 
-  private def getCreepTumorPosition(unit: UnitInPool): Point2d = {
-    val size = obs.getGameInfo.getStartRaw.get().getMapSize
-    val x = size.getX
-    val y = size.getY
-    LazyList.continually(
-      Point2d.of(Random.nextInt(x).toFloat, Random.nextInt(y).toFloat)
-    ).find(obs.hasCreep).get
+  private def getCreepTumorPosition(unit: UnitInPool, tumors: mutable.Set[Point2d]): Point2d = {
+    //TODO find how to get it from API
+    val tumorCreepRange = 5.0
+
+    val mb = mainBuildings.toSeq
+
+    creepMap
+      .filter(obs.hasCreep)
+      .filter(x => !tumors.exists(_.distance(x) <= tumorCreepRange / 2))
+      .map { p =>
+        // calculate score by distance to hatcheries
+        p -> creepMap.to(LazyList).filter(_.distance(p) < tumorCreepRange)
+          .filter(!obs.hasCreep(_))
+          .map(pp => mb.map(b => 100.0 / b.toPoint2d.distance(pp)).sum).sum
+      }.maxBy(_._2)._1
   }
 
 }
 
 sealed trait QueenRole
 
+case class Injections(hatcheryTag: Tag) extends QueenRole
+
 object CreepSpread extends QueenRole
 
 object Fighting extends QueenRole
-
-case class Injections(hatcheryTag: Tag) extends QueenRole
