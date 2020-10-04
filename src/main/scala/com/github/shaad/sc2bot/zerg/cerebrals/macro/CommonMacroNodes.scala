@@ -37,7 +37,7 @@ class CommonMacroNodes(resourceManager: ResourceManager, val expansionLocations:
     )
   )
 
-  def constructBuild(unitType: UnitType) = Sequence(
+  def constructBuilding(unitType: UnitType) = Sequence(
     Sequence(
       Action { id => resourceManager.reserveResources(id, unitType) },
       Condition { id => resourceManager.removeReservationIfEnough(id) },
